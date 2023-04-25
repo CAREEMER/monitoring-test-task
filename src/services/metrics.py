@@ -2,6 +2,7 @@ from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from models.metrics import MetricsUnit
+from schemas.aggregated_metrics import AggregatedMetricsByPath
 
 
 async def create_metrics_unit(metrics: MetricsUnit, session: AsyncSession) -> MetricsUnit:
@@ -12,7 +13,9 @@ async def create_metrics_unit(metrics: MetricsUnit, session: AsyncSession) -> Me
     return metrics
 
 
-async def get_metrics_by_service_name(service_name: str, session: AsyncSession):
+async def get_metrics_aggregation_by_service_name(
+    service_name: str, session: AsyncSession
+) -> list[AggregatedMetricsByPath]:
     query = (
         select(
             MetricsUnit.path,
@@ -24,5 +27,5 @@ async def get_metrics_by_service_name(service_name: str, session: AsyncSession):
         .group_by(MetricsUnit.path)
     )
 
-    result = await session.execute(query)
-    return result.all()
+    result = (await session.execute(query)).all()
+    return [AggregatedMetricsByPath(path=el.path, average=el.avg, max=el.max, min=el.min) for el in result]
